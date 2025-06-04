@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PT. GARUTAMA GAS UTAMA (i-Ledger)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 to-white min-h-screen flex items-center justify-center p-4 relative">
+  <div id="loadingOverlay" class="hidden absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <h2 class="text-3xl font-bold text-indigo-700 mb-6 text-center">PT. GARUTAMA GAS UTAMA (i-Ledger)</h2>
+    <form id="ledgerForm" class="space-y-6">
+      <!-- Nama -->
+      <div>
+        <label for="nama" class="block text-sm font-medium text-gray-600">Nama</label>
+        <select id="nama" required class="mt-2 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500"></select>
+      </div>
+
+      <!-- Uraian & Pos -->
+      <div>
+        <label for="uraian" class="block text-sm font-medium text-gray-600">Uraian</label>
+        <input list="uraianList" id="uraian" placeholder="Ketik untuk mencari..." required
+          class="mt-2 block w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500" />
+        <datalist id="uraianList"></datalist>
+      </div>
+      <div>
+        <label for="pos" class="block text-sm font-medium text-gray-600">Pos</label>
+        <input type="text" id="pos" readonly class="mt-2 block w-full bg-gray-100 border border-gray-300 rounded-lg p-3" />
+      </div>
+
+      <!-- Nominal -->
+      <div>
+        <label for="nominal" class="block text-sm font-medium text-gray-600">Nominal</label>
+        <input type="text" id="nominal" placeholder="200.000" required
+          class="mt-2 block w-full border border-gray-300 rounded-lg p-3 focus:ring-indigo-500 focus:border-indigo-500" />
+      </div>
+
+      <!-- Foto Nota -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Foto Nota</label>
+        <input type="file" accept="image/*" id="fotoNotaUpload" class="hidden" />
+        <input type="file" accept="image/*" capture="environment" id="fotoNotaCamera" class="hidden" />
+        <div class="mt-2 flex items-center space-x-2">
+          <label for="fotoNotaUpload" class="cursor-pointer bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition">Galeri</label>
+          <label for="fotoNotaCamera" class="cursor-pointer bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition">Kamera</label>
+          <img id="previewNota" class="w-55 h-55 object-cover rounded-lg border hidden" />
+        </div>
+      </div>
+
+      <!-- Pembayaran -->
+      <div>
+        <label for="pembayaran" class="block text-sm font-medium text-gray-600">Pembayaran</label>
+        <select id="pembayaran" class="mt-2 block w-full border border-gray-300 rounded-lg p-3 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="Cash">Cash</option>
+          <option value="Transfer">Transfer</option>
+        </select>
+      </div>
+
+      <!-- Bukti Transfer -->
+      <div id="buktiTransferContainer" class="hidden">
+        <label for="buktiTransfer" class="block text-sm font-medium text-gray-600">Bukti Transfer</label>
+        <div class="mt-2 flex items-center space-x-2">
+          <input type="file" accept="image/*" id="buktiTransfer" class="hidden" />
+          <label for="buktiTransfer" class="cursor-pointer bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition">Upload Bukti</label>
+          <img id="previewBukti" class="w-20 h-20 object-cover rounded-lg border hidden" />
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow transition">Kirim Transaksi</button>
+    </form>
+  </div>
+
+  <style>
+    .loader {
+      border-top-color: #6366f1;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+<script src="config.js"></script>
+  <script>
+    const SHEET_API_NAMA = API_ENDPOINT + '?action=nama';
+    const SHEET_API_POS = API_ENDPOINT + '?action=pos';
+    const SHEET_SUBMIT_URL = API_ENDPOINT;
+
+    const namaDropdown = document.getElementById('nama');
+    const uraianInput = document.getElementById('uraian');
+    const uraianList = document.getElementById('uraianList');
+    const posInput = document.getElementById('pos');
+    const pembayaran = document.getElementById('pembayaran');
+    const buktiContainer = document.getElementById('buktiTransferContainer');
+    const fotoUpload = document.getElementById('fotoNotaUpload');
+    const fotoCamera = document.getElementById('fotoNotaCamera');
+    const previewNota = document.getElementById('previewNota');
+    const buktiInput = document.getElementById('buktiTransfer');
+    const previewBukti = document.getElementById('previewBukti');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    document.getElementById('nominal').addEventListener('input', e => {
+      let v = e.target.value.replace(/\D/g, '');
+      e.target.value = new Intl.NumberFormat('id-ID').format(v);
+    });
+
+    // Populate dropdown nama
+    fetch(SHEET_API_NAMA)
+      .then(r => r.json())
+      .then(data => data.forEach(n => {
+        let o = document.createElement('option');
+        o.value = o.textContent = n;
+        namaDropdown.appendChild(o);
+      }));
+
+    // Populate uraian + pos
+    let uraianMap = {};
+    fetch(SHEET_API_POS)
+      .then(r => r.json())
+      .then(data => data.forEach(r => {
+        uraianMap[r.uraian] = r.pos;
+        let o = document.createElement('option');
+        o.value = r.uraian;
+        uraianList.appendChild(o);
+      }));
+
+    uraianInput.addEventListener('input', () => {
+      const val = uraianInput.value;
+      posInput.value = uraianMap[val] || '';
+    });
+
+    uraianInput.addEventListener('blur', () => {
+      const val = uraianInput.value;
+      if (val && !uraianMap[val]) alert('❌ Pos tidak ditemukan!');
+    });
+
+    function handleFoto(file) {
+      previewNota.src = URL.createObjectURL(file);
+      previewNota.classList.remove('hidden');
+    }
+
+    fotoUpload.addEventListener('change', () => handleFoto(fotoUpload.files[0]));
+    fotoCamera.addEventListener('change', () => handleFoto(fotoCamera.files[0]));
+
+    pembayaran.addEventListener('change', () => {
+      buktiContainer.classList.toggle('hidden', pembayaran.value !== 'Transfer');
+    });
+
+    buktiInput.addEventListener('change', () => {
+      const f = buktiInput.files[0];
+      previewBukti.src = URL.createObjectURL(f);
+      previewBukti.classList.remove('hidden');
+    });
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('ledgerForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      loadingOverlay.classList.remove('hidden');
+
+      const nama = namaDropdown.value;
+      const uraian = uraianInput.value;
+      if (!uraianMap[uraian]) {
+        loadingOverlay.classList.add('hidden');
+        alert('❌ Uraian tidak valid.');
+        return;
+      }
+
+      const pos = posInput.value;
+      const nominal = document.getElementById('nominal').value.replace(/\D/g, '');
+      const pembayaranVal = pembayaran.value;
+
+      const fotoFile = fotoUpload.files[0] || fotoCamera.files[0];
+      if (!fotoFile) {
+        loadingOverlay.classList.add('hidden');
+        alert('❌ Foto nota wajib diunggah.');
+        return;
+      }
+
+      const foto64 = await toBase64(fotoFile);
+      const bukti64 = pembayaranVal === 'Transfer' && buktiInput.files[0]
+        ? await toBase64(buktiInput.files[0])
+        : '';
+      
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, '0'); // Pastikan tanggal memiliki dua digit
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Pastikan bulan memiliki dua digit
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0'); // Pastikan jam memiliki dua digit
+  const minutes = String(date.getMinutes()).padStart(2, '0'); // Pastikan menit memiliki dua digit
+  const seconds = String(date.getSeconds()).padStart(2, '0'); // Pastikan detik memiliki dua digit
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`; // Format: 30/04/2025 10:51:04
+}
+
+const timestamp = formatDate(new Date()); // Format: 30/04/2025 10:51:04
+console.log(timestamp); // "30/04/2025 10:51:04"
+
+const payload = {
+  action: 'add',
+  sheet: 'Transaksi',
+  values: [timestamp, nama, uraian, pos, nominal, foto64, pembayaranVal, bukti64]
+};
+
+fetch(SHEET_SUBMIT_URL, {
+  method: 'POST',
+  mode: 'no-cors',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+})
+    .finally(() => {
+        loadingOverlay.classList.add('hidden');
+        alert('✅ Transaksi disimpan!');
+        document.getElementById('ledgerForm').reset();
+        previewNota.classList.add('hidden');
+        previewBukti.classList.add('hidden');
+        posInput.value = '';
+        buktiContainer.classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+</html>
