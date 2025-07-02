@@ -596,10 +596,14 @@ async function getImageBase64FromURL(url) {
         progress.textContent = Math.round(((i + 1) / filteredData.length) * 100);
       }
 
-      notif.style.display = "none";
-      spinner.style.display = "none";
       doc.save("i-Ledger_BukuBesar.pdf");
-    }
+
+// Tambahkan setTimeout untuk pastikan spinner tetap hilang setelah simpan selesai
+setTimeout(() => {
+  notif.style.display = "none";
+  document.getElementById("loadingSpinner").style.display = "none";
+}, 1000);
+
 
     document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
