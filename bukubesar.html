@@ -432,7 +432,20 @@ function filterCurrentMonthData() {
     document.getElementById("excelBtn").addEventListener("click", function () {
       const table = document.getElementById("ledgerTable");
       const wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
-      XLSX.writeFile(wb, "buku_besar.xlsx");
+     const startDate = document.getElementById("startDate").value;
+const endDate = document.getElementById("endDate").value;
+let fileName = "i-Ledger_BukuBesar";
+
+if (startDate && endDate) {
+  const formatDate = d => {
+    const date = new Date(d);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+  };
+  fileName += `_${formatDate(startDate)}_sampai_${formatDate(endDate)}`;
+}
+
+XLSX.writeFile(wb, `${fileName}.xlsx`);
     });
 // Download Excel PER POST
 document.getElementById("downloadExcelPerPosBtn").onclick = () => {
@@ -480,7 +493,17 @@ document.getElementById("downloadExcelPerPosBtn").onclick = () => {
     XLSX.utils.book_append_sheet(wb, ws, pos);
   });
 
-  XLSX.writeFile(wb, "i-Ledger_Per_POS.xlsx");
+  let fileName = "i-Ledger_Per_POS";
+if (startDate && endDate) {
+  const formatDate = d => {
+    const date = new Date(d);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+  };
+  fileName += `_${formatDate(startDate)}_sampai_${formatDate(endDate)}`;
+}
+XLSX.writeFile(wb, `${fileName}.xlsx`);
+
 };
 
 // Coba parsing tanggal dengan fleksibel
@@ -598,7 +621,16 @@ async function getImageBase64FromURL(url) {
 
 notif.style.display = "none";
 document.getElementById("loadingSpinner").style.display = "none";
-doc.save("i-Ledger_BukuBesar.pdf");
+let fileName = "i-Ledger_BukuBesar";
+if (startDate && endDate) {
+  const formatDate = d => {
+    const date = new Date(d);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+  };
+  fileName += `_${formatDate(startDate)}_sampai_${formatDate(endDate)}`;
+}
+doc.save(`${fileName}.pdf`);
 
     }
 
