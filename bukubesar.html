@@ -489,7 +489,8 @@ function getImageBase64ViaImgTag(url) {
     if (!idMatch) return reject("ID Google Drive tidak ditemukan");
 
     const driveId = idMatch[1];
-    const directURL = `https://drive.google.com/uc?export=view&id=${driveId}`;
+    const directURL = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`; // thumbnail
+
 
     const img = new Image();
     img.crossOrigin = "anonymous"; // ini akan diabaikan oleh Google tapi tetap kita coba
