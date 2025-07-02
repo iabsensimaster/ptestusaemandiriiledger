@@ -564,32 +564,28 @@ async function downloadPDFWithImages() {
     doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 10, y); y += 8;
     doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 10, y); y += 8;
 
-    // === FOTO NOTA ===
-    doc.text("Foto Nota:", 10, y); y += 5;
+    // FOTO NOTA
     if (item.foto) {
+      doc.text("Foto Nota:", 10, y); y += 5;
       try {
-        const base64Nota = await getImageBase64ViaImgTag(item.foto);
-        doc.addImage(base64Nota, "JPEG", 10, y, 80, 60);
+        const imgData = await getImageBase64ViaImgTag(item.foto);
+        doc.addImage(imgData, "JPEG", 10, y, 80, 60);
         y += 65;
-      } catch (err) {
-        doc.text("Gagal memuat foto nota", 15, y); y += 10;
+      } catch {
+        doc.text("Gagal muat foto nota", 15, y); y += 10;
       }
-    } else {
-      doc.text("Tidak ada foto nota", 15, y); y += 10;
     }
 
-    // === BUKTI TRANSFER ===
-    doc.text("Bukti Transfer:", 10, y); y += 5;
+    // BUKTI TRANSFER
     if (item.buktitransfer) {
+      doc.text("Bukti Transfer:", 10, y); y += 5;
       try {
-        const base64Transfer = await getImageBase64ViaImgTag(item.buktitransfer);
-        doc.addImage(base64Transfer, "JPEG", 10, y, 80, 60);
+        const imgData = await getImageBase64ViaImgTag(item.buktitransfer);
+        doc.addImage(imgData, "JPEG", 10, y, 80, 60);
         y += 65;
-      } catch (err) {
-        doc.text("Gagal memuat bukti transfer", 15, y); y += 10;
+      } catch {
+        doc.text("Gagal muat bukti transfer", 15, y); y += 10;
       }
-    } else {
-      doc.text("Tidak ada bukti transfer", 15, y); y += 10;
     }
   }
 
