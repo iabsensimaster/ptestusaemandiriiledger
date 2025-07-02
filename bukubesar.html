@@ -181,11 +181,10 @@
       color: var(--text);
       font-size: 1rem;
     }
-
   </style>
 </head>
 <body>
-  <div class="spinner" id="loadingSpinner" style="display: none;"></div>
+  <div class="spinner" id="loadingSpinner"></div>
   <div class="notification" id="pdfNotif">Sedang menyiapkan file PDF... (<span id="pdfProgress">0</span>%)</div>
   <!-- Spinner element -->
   <div class="spinner" id="loadingSpinner"></div>
@@ -599,7 +598,7 @@ async function getImageBase64FromURL(url) {
       }
 
       notif.style.display = "none";
-      document.getElementById("loadingSpinner").style.display = "none";
+      spinner.style.display = "none";
       doc.save("i-Ledger_BukuBesar.pdf");
     }
 
