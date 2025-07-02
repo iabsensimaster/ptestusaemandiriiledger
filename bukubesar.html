@@ -517,78 +517,70 @@ function getImageBase64ViaImgTag(url) {
   });
 }
 
-async function downloadPDFWithImages() {
-  if (!allData.length) {
-    alert("Data tidak tersedia!");
-    return;
-  }
+    async function downloadPDFWithImages() {
+      if (!allData.length) return alert("Data tidak tersedia!");
 
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
-  let filteredData = allData;
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      let filteredData = allData;
 
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    filteredData = allData.filter(item => {
-      const timestamp = new Date(item.timestamp);
-      return timestamp >= start && timestamp <= end;
-    });
-  }
-
-  const posList = [...new Set(filteredData.map(d => d.pos))];
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  for (const pos of posList) {
-    const posFilteredData = filteredData.filter(d => d.pos === pos);
-    for (const item of posFilteredData) {
-      doc.addPage();
-      doc.setFontSize(12);
-      doc.text(`Pos: ${pos}`, 6, 6);
-      doc.text(`Tanggal: ${parseTanggal(item.timestamp)}`, 6, 12);
-      doc.text(`Nama: ${item.nama}`, 6, 18);
-      doc.text(`Uraian: ${item.uraian}`, 6, 24);
-      doc.text(`Nominal: ${item.nominal}`, 6, 30);
-      doc.text(`Pembayaran: ${item.pembayaran}`, 6, 36);
-      let y = 42;
-
-      // Foto Nota
-      doc.text("Foto Nota:", 6, y); y += 6;
-      if (item.foto) {
-        try {
-          const fotoBase64 = await getImageBase64ViaImgTag(item.foto);
-          doc.addImage(fotoBase64, 'JPEG', 6, y, 80, 60);
-          y += 65;
-        } catch {
-          doc.text("Gagal tampilkan foto nota.", 10, y);
-          y += 10;
-        }
-      } else {
-        doc.text("Tidak ada foto nota.", 10, y); y += 10;
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filteredData = allData.filter(item => {
+          const t = new Date(item.timestamp);
+          return t >= start && t <= end;
+        });
       }
 
-      // Bukti Transfer
-      doc.text("Bukti Transfer:", 6, y); y += 6;
-      if (item.buktitransfer) {
-        try {
-          const buktitransferBase64 = await getImageBase64ViaImgTag(item.buktitransfer);
-          doc.addImage(buktitransferBase64, 'JPEG', 6, y, 80, 60);
-          y += 65;
-        } catch {
-          doc.text("Gagal tampilkan bukti transfer.", 10, y);
-          y += 10;
+      const posList = [...new Set(filteredData.map(d => d.pos))];
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let first = true;
+
+      for (const pos of posList) {
+        const posFiltered = filteredData.filter(d => d.pos === pos);
+        for (const item of posFiltered) {
+          if (!first) doc.addPage();
+          first = false;
+          doc.setFontSize(12);
+          doc.text(`Pos: ${pos}`, 6, 6);
+          doc.text(`Tanggal: ${parseTanggal(item.timestamp)}`, 6, 12);
+          doc.text(`Nama: ${item.nama}`, 6, 18);
+          doc.text(`Uraian: ${item.uraian}`, 6, 24);
+          doc.text(`Nominal: ${item.nominal}`, 6, 30);
+          doc.text(`Pembayaran: ${item.pembayaran}`, 6, 36);
+          let y = 42;
+
+          doc.text("Foto Nota:", 6, y); y += 6;
+          if (item.foto) {
+            try {
+              const base64 = await getImageBase64ViaImgTag(item.foto);
+              doc.addImage(base64, 'JPEG', 6, y, 80, 60); y += 65;
+            } catch {
+              doc.text("Gagal tampilkan foto nota.", 10, y); y += 10;
+            }
+          } else {
+            doc.text("Tidak ada foto nota.", 10, y); y += 10;
+          }
+
+          doc.text("Bukti Transfer:", 6, y); y += 6;
+          if (item.buktitransfer) {
+            try {
+              const base64 = await getImageBase64ViaImgTag(item.buktitransfer);
+              doc.addImage(base64, 'JPEG', 6, y, 80, 60); y += 65;
+            } catch {
+              doc.text("Gagal tampilkan bukti transfer.", 10, y); y += 10;
+            }
+          } else {
+            doc.text("Tidak ada bukti transfer.", 10, y); y += 10;
+          }
         }
-      } else {
-        doc.text("Tidak ada bukti transfer.", 10, y); y += 10;
       }
+
+      doc.save("Foto_Nota.pdf");
     }
-  }
-
-  doc.deletePage(1); // Hapus halaman kosong pertama
-  doc.save("Foto_Nota.pdf");
-}
 
 document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
