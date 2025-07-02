@@ -544,58 +544,58 @@ async function downloadPDFWithImages() {
     });
   }
 
-  const posList = [...new Set(filteredData.map(d => d.pos))];
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF("p", "mm", "a4");
+  let y = 10;
 
-  for (const pos of posList) {
-    const posFilteredData = filteredData.filter(d => d.pos === pos);
-    for (const item of posFilteredData) {
+  for (let i = 0; i < filteredData.length; i++) {
+    const item = filteredData[i];
+
+    if (i > 0) {
       doc.addPage();
-      doc.setFontSize(12);
-      doc.text(`Pos: ${pos}`, 6, 6);
-      doc.text(`Tanggal: ${parseTanggal(item.timestamp)}`, 6, 12);
-      doc.text(`Nama: ${item.nama}`, 6, 18);
-      doc.text(`Uraian: ${item.uraian}`, 6, 24);
-      doc.text(`Nominal: ${item.nominal}`, 6, 30);
-      doc.text(`Pembayaran: ${item.pembayaran}`, 6, 36);
-      let y = 42;
+      y = 10;
+    }
 
-      // Foto Nota
-      doc.text("Foto Nota:", 6, y); y += 6;
-      if (item.foto) {
-        try {
-          const fotoBase64 = await getImageBase64ViaImgTag(item.foto);
-          doc.addImage(fotoBase64, 'JPEG', 6, y, 80, 60);
-          y += 65;
-        } catch {
-          doc.text("Gagal tampilkan foto nota.", 10, y);
-          y += 10;
-        }
-      } else {
-        doc.text("Tidak ada foto nota.", 10, y); y += 10;
-      }
+    doc.setFontSize(12);
+    doc.text(`Timestamp: ${formatTanggalIndonesia(item.timestamp)}`, 10, y); y += 8;
+    doc.text(`Nama: ${item.nama || "-"}`, 10, y); y += 8;
+    doc.text(`Uraian: ${item.uraian || "-"}`, 10, y); y += 8;
+    doc.text(`Pos: ${item.pos || "-"}`, 10, y); y += 8;
+    doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 10, y); y += 8;
+    doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 10, y); y += 8;
 
-      // Bukti Transfer
-      doc.text("Bukti Transfer:", 6, y); y += 6;
-      if (item.buktitransfer) {
-        try {
-          const buktitransferBase64 = await getImageBase64ViaImgTag(item.buktitransfer);
-          doc.addImage(buktitransferBase64, 'JPEG', 6, y, 80, 60);
-          y += 65;
-        } catch {
-          doc.text("Gagal tampilkan bukti transfer.", 10, y);
-          y += 10;
-        }
-      } else {
-        doc.text("Tidak ada bukti transfer.", 10, y); y += 10;
+    // === FOTO NOTA ===
+    doc.text("Foto Nota:", 10, y); y += 5;
+    if (item.foto) {
+      try {
+        const base64Nota = await getImageBase64ViaImgTag(item.foto);
+        doc.addImage(base64Nota, "JPEG", 10, y, 80, 60);
+        y += 65;
+      } catch (err) {
+        doc.text("Gagal memuat foto nota", 15, y); y += 10;
       }
+    } else {
+      doc.text("Tidak ada foto nota", 15, y); y += 10;
+    }
+
+    // === BUKTI TRANSFER ===
+    doc.text("Bukti Transfer:", 10, y); y += 5;
+    if (item.buktitransfer) {
+      try {
+        const base64Transfer = await getImageBase64ViaImgTag(item.buktitransfer);
+        doc.addImage(base64Transfer, "JPEG", 10, y, 80, 60);
+        y += 65;
+      } catch (err) {
+        doc.text("Gagal memuat bukti transfer", 15, y); y += 10;
+      }
+    } else {
+      doc.text("Tidak ada bukti transfer", 15, y); y += 10;
     }
   }
 
-  doc.deletePage(1); // Hapus halaman kosong pertama
-  doc.save("Foto_Nota.pdf");
+  doc.save("i-Ledger_BukuBesar.pdf");
 }
+
 
 document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
