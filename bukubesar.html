@@ -557,60 +557,61 @@ async function downloadPDFWithImages() {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("p", "mm", "a4");
-  let y = 10;
 
   for (let i = 0; i < filteredData.length; i++) {
     const item = filteredData[i];
-
-    if (i > 0) {
-      doc.addPage();
-      y = 10;
-    }
-
+    if (i > 0) doc.addPage();
+    
     doc.setFontSize(12);
-    doc.text(`Timestamp: ${formatTanggalIndonesia(item.timestamp)}`, 10, y); y += 8;
-    doc.text(`Nama: ${item.nama || "-"}`, 10, y); y += 8;
-    doc.text(`Uraian: ${item.uraian || "-"}`, 10, y); y += 8;
-    doc.text(`Pos: ${item.pos || "-"}`, 10, y); y += 8;
-    doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 10, y); y += 8;
-    doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 10, y); y += 8;
+    doc.text(`Timestamp: ${formatTanggalIndonesia(item.timestamp)}`, 6, 6);
+    doc.text(`Nama: ${item.nama || "-"}`, 6, 12);
+    doc.text(`Uraian: ${item.uraian || "-"}`, 6, 18);
+    doc.text(`Pos: ${item.pos || "-"}`, 6, 24);
+    doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 6, 30);
+    doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 6, 36);
 
     // === FOTO NOTA ===
-    doc.text("Foto Nota:", 10, y); y += 5;
+    doc.text("Foto Nota:", 6, 42);
     if (item.foto) {
       const idNota = extractDriveId(item.foto);
       if (idNota) {
         const base64Nota = await fetchBase64FromDrive(idNota);
         if (base64Nota) {
-          doc.addImage(base64Nota, "JPEG", 10, y, 80, 60);
-          y += 65;
+          try {
+            doc.addImage(base64Nota, "JPEG", 6, 48, 0, 80); // width auto, height 80
+          } catch (e) {
+            doc.text("Gagal tampilkan foto nota.", 10, 48);
+          }
         } else {
-          doc.text("Gagal muat foto nota", 15, y); y += 10;
+          doc.text("Gagal muat foto nota.", 10, 48);
         }
       } else {
-        doc.text("ID Foto Nota tidak valid", 15, y); y += 10;
+        doc.text("Link foto nota tidak valid.", 10, 48);
       }
     } else {
-      doc.text("Tidak ada foto nota", 15, y); y += 10;
+      doc.text("Tidak ada foto nota.", 10, 48);
     }
 
     // === BUKTI TRANSFER ===
-    doc.text("Bukti Transfer:", 10, y); y += 5;
+    doc.text("Bukti Transfer:", 6, 140);
     if (item.buktitransfer) {
       const idBukti = extractDriveId(item.buktitransfer);
       if (idBukti) {
         const base64Bukti = await fetchBase64FromDrive(idBukti);
         if (base64Bukti) {
-          doc.addImage(base64Bukti, "JPEG", 10, y, 80, 60);
-          y += 65;
+          try {
+            doc.addImage(base64Bukti, "JPEG", 6, 146, 70, 0); // width 70, height auto
+          } catch (e) {
+            doc.text("Gagal tampilkan bukti transfer.", 10, 146);
+          }
         } else {
-          doc.text("Gagal muat bukti transfer", 15, y); y += 10;
+          doc.text("Gagal muat bukti transfer.", 10, 146);
         }
       } else {
-        doc.text("ID Bukti Transfer tidak valid", 15, y); y += 10;
+        doc.text("Link bukti transfer tidak valid.", 10, 146);
       }
     } else {
-      doc.text("Tidak ada bukti transfer", 15, y); y += 10;
+      doc.text("Tidak ada bukti transfer.", 10, 146);
     }
   }
 
