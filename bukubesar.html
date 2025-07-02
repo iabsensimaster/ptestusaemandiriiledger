@@ -166,6 +166,17 @@
         margin-right: 0;
       }
     }
+    #downloadOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255,255,255,0.8);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
   </style>
 </head>
 <body>
@@ -212,6 +223,10 @@
       <div id="totalNominal" style="font-weight: bold; margin-top: 1rem;">Total Nominal: Rp 0</div>
     </div>
   </div>
+<div id="downloadOverlay" style="display:none; position: fixed; inset: 0; background-color: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; font-family: sans-serif;">
+  <div class="spinner" style="margin-bottom: 1rem;"></div>
+  <div style="color: #333; font-size: 1rem;">Sedang memproses & mengunduh file PDF...</div>
+</div>
 
   <!-- Library for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -541,6 +556,9 @@ async function downloadPDFWithImages() {
     return;
   }
 
+  // TAMPILKAN OVERLAY
+  document.getElementById("downloadOverlay").style.display = "flex";
+
   const startDate = document.getElementById("startDate").value;
   const endDate = document.getElementById("endDate").value;
   let filteredData = allData;
@@ -570,7 +588,6 @@ async function downloadPDFWithImages() {
     doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 6, 30);
     doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 6, 36);
 
-    // === FOTO NOTA ===
     doc.text("Foto Nota:", 6, 42);
     if (item.foto) {
       const idNota = extractDriveId(item.foto);
@@ -578,7 +595,7 @@ async function downloadPDFWithImages() {
         const base64Nota = await fetchBase64FromDrive(idNota);
         if (base64Nota) {
           try {
-            doc.addImage(base64Nota, "JPEG", 6, 48, 0, 80); // width auto, height 80
+            doc.addImage(base64Nota, "JPEG", 6, 48, 0, 80);
           } catch (e) {
             doc.text("Gagal tampilkan foto nota.", 10, 48);
           }
@@ -592,7 +609,6 @@ async function downloadPDFWithImages() {
       doc.text("Tidak ada foto nota.", 10, 48);
     }
 
-    // === BUKTI TRANSFER ===
     doc.text("Bukti Transfer:", 6, 140);
     if (item.buktitransfer) {
       const idBukti = extractDriveId(item.buktitransfer);
@@ -600,7 +616,7 @@ async function downloadPDFWithImages() {
         const base64Bukti = await fetchBase64FromDrive(idBukti);
         if (base64Bukti) {
           try {
-            doc.addImage(base64Bukti, "JPEG", 6, 146, 70, 0); // width 70, height auto
+            doc.addImage(base64Bukti, "JPEG", 6, 146, 70, 0);
           } catch (e) {
             doc.text("Gagal tampilkan bukti transfer.", 10, 146);
           }
@@ -615,13 +631,12 @@ async function downloadPDFWithImages() {
     }
   }
 
+  // DOWNLOAD FILE
   doc.save("i-Ledger_BukuBesar.pdf");
+
+  // SEMBUNYIKAN OVERLAY SETELAH SELESAI
+  document.getElementById("downloadOverlay").style.display = "none";
 }
-
-document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
-
-
-
     function filterCurrentMonthData() {
       const now = new Date();
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
