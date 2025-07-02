@@ -502,111 +502,38 @@ async function getImageBase64FromURL(url) {
 }
 
 // Download PDF
-function getImageBase64ViaImgTag(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      try {
-        const dataURL = canvas.toDataURL("image/jpeg");
-        resolve(dataURL);
-      } catch (err) {
-        reject("Gagal convert canvas ke base64");
-      }
-    };
-    img.onerror = () => reject("Gagal load gambar dari URL");
-    img.src = url;
-  });
-}
-    async function prepareBase64Data(filteredData) {
-  const prepared = [];
-
-  for (const item of filteredData) {
-    const fotoBase64 = item.foto
-      ? await getImageBase64ViaImgTag(item.foto).catch(() => null)
-      : null;
-
-    const buktitransferBase64 = item.buktitransfer
-      ? await getImageBase64ViaImgTag(item.buktitransfer).catch(() => null)
-      : null;
-
-    prepared.push({
-      ...item,
-      fotoBase64,
-      buktitransferBase64
-    });
-  }
-
-  return prepared;
-}
-
-
-async function downloadPDFWithImages() {
-  if (!allData.length) {
-    alert("Data tidak tersedia!");
+async function downloadScreenshotPDF() {
+  const rows = document.querySelectorAll("#ledgerTable tbody tr");
+  if (!rows.length) {
+    alert("Tidak ada data untuk discreenshot.");
     return;
   }
 
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
-  let filteredData = allData;
-
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    filteredData = allData.filter(item => {
-      const timestamp = new Date(item.timestamp);
-      return timestamp >= start && timestamp <= end;
-    });
-  }
-
-  const preparedData = await prepareBase64Data(filteredData);
-  const posList = [...new Set(preparedData.map(d => d.pos))];
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF("p", "mm", "a4");
 
-  for (const pos of posList) {
-    const posFiltered = preparedData.filter(d => d.pos === pos);
-    for (const item of posFiltered) {
-      doc.addPage();
-      doc.setFontSize(12);
-      doc.text(`Pos: ${pos}`, 6, 6);
-      doc.text(`Tanggal: ${parseTanggal(item.timestamp)}`, 6, 12);
-      doc.text(`Nama: ${item.nama}`, 6, 18);
-      doc.text(`Uraian: ${item.uraian}`, 6, 24);
-      doc.text(`Nominal: ${item.nominal}`, 6, 30);
-      doc.text(`Pembayaran: ${item.pembayaran}`, 6, 36);
-      let y = 42;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    row.style.border = "2px solid red"; // opsional untuk bantu lihat
+    const canvas = await html2canvas(row, {
+      scale: 2,
+      useCORS: true
+    });
 
-      doc.text("Foto Nota:", 6, y); y += 6;
-      if (item.fotoBase64) {
-        doc.addImage(item.fotoBase64, 'JPEG', 6, y, 80, 60);
-        y += 65;
-      } else {
-        doc.text("Tidak ada / gagal tampilkan foto nota.", 10, y); y += 10;
-      }
+    const imgData = canvas.toDataURL("image/png");
+    const imgProps = doc.getImageProperties(imgData);
 
-      doc.text("Bukti Transfer:", 6, y); y += 6;
-      if (item.buktitransferBase64) {
-        doc.addImage(item.buktitransferBase64, 'JPEG', 6, y, 80, 60);
-        y += 65;
-      } else {
-        doc.text("Tidak ada / gagal tampilkan bukti transfer.", 10, y); y += 10;
-      }
-    }
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    if (i > 0) doc.addPage();
+    doc.addImage(imgData, "PNG", 0, 10, pdfWidth, pdfHeight);
   }
 
-  doc.deletePage(1);
-  doc.save("Foto_Nota_PerPOS.pdf");
+  doc.save("Screenshot_BukuBesar.pdf");
 }
 
-document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
+document.getElementById("pdfBtn").addEventListener("click", downloadScreenshotPDF);
 
 
 
