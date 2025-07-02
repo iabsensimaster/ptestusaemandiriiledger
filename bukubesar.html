@@ -502,32 +502,28 @@ async function getImageBase64FromURL(url) {
 }
 
 // Download PDF
-function getImageBase64ViaImgTag(url) {
-  return new Promise((resolve, reject) => {
-    const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
-    if (!idMatch) return reject("ID Google Drive tidak ditemukan");
+async function getImageBase64FromURL(url) {
+  const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+  if (!idMatch) throw new Error("ID Google Drive tidak ditemukan");
 
-    const driveId = idMatch[1];
-    const directURL = `https://corsproxy.io/?https://drive.google.com/uc?export=view&id=${driveId}`;
+  const driveId = idMatch[1];
+  const driveURL = `https://drive.google.com/uc?export=view&id=${driveId}`;
 
-    const img = new Image();
-    img.crossOrigin = "anonymous"; // tetap disetel
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      try {
-        const base64 = canvas.toDataURL("image/jpeg", 1.0);
-        resolve(base64);
-      } catch (err) {
-        reject("Gagal convert gambar ke base64");
-      }
-    };
-    img.onerror = () => reject("Gagal load gambar");
-    img.src = directURL;
-  });
+  try {
+    const response = await fetch(driveURL);
+    if (!response.ok) throw new Error("Gagal fetch gambar");
+
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject("Gagal convert blob ke base64");
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error fetching image base64:", error);
+    throw error;
+  }
 }
 
 async function downloadPDFWithImages() {
