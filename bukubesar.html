@@ -485,70 +485,119 @@ function parseTanggal(input) {
     // Download PDF
 // Download PDF
 // Tambahkan fungsi helper untuk convert URL gambar ke base64
-// Convert gambar dari Google Drive ke Base64
-async function convertImageToBase64(imgElement) {
+async function getImageBase64FromURL(url) {
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error("Gagal konversi gambar:", err);
+    return null;
+  }
+}
+
+// Download PDF
+function getImageBase64ViaImgTag(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = function () {
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      canvas.width = img.width;
+      canvas.height = img.height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
+      try {
+        const dataURL = canvas.toDataURL("image/jpeg");
+        resolve(dataURL);
+      } catch (err) {
+        reject("Gagal convert canvas ke base64");
+      }
     };
-    img.onerror = () => resolve(null); // biar gak ganggu loop
-    img.src = imgElement.src;
+    img.onerror = () => reject("Gagal load gambar dari URL");
+    img.src = url;
   });
 }
 
-// Ganti semua <img> Google Drive ke base64
-async function preloadImagesInRow(row) {
-  const imgElements = row.querySelectorAll("img");
-  for (let img of imgElements) {
-    const base64 = await convertImageToBase64(img);
-    if (base64) img.src = base64;
-  }
-}
-
-// Download PDF Screenshot per row
-async function downloadScreenshotPDF() {
-  const rows = document.querySelectorAll("#ledgerTable tbody tr");
-  if (!rows.length) {
-    alert("Tidak ada data untuk discreenshot.");
+async function downloadPDFWithImages() {
+  if (!allData.length) {
+    alert("Data tidak tersedia!");
     return;
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p", "mm", "a4");
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
+  let filteredData = allData;
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-
-    // Ubah semua gambar di row ini ke base64
-    await preloadImagesInRow(row);
-
-    // Render screenshot
-    const canvas = await html2canvas(row, {
-      scale: 2,
-      useCORS: true
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    filteredData = allData.filter(item => {
+      const timestamp = new Date(item.timestamp);
+      return timestamp >= start && timestamp <= end;
     });
-
-    const imgData = canvas.toDataURL("image/png");
-    const imgProps = doc.getImageProperties(imgData);
-
-    const pdfWidth = doc.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    if (i > 0) doc.addPage();
-    doc.addImage(imgData, "PNG", 0, 10, pdfWidth, pdfHeight);
   }
 
-  doc.save("Screenshot_BukuBesar.pdf");
+  const posList = [...new Set(filteredData.map(d => d.pos))];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  for (const pos of posList) {
+    const posFilteredData = filteredData.filter(d => d.pos === pos);
+    for (const item of posFilteredData) {
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.text(`Pos: ${pos}`, 6, 6);
+      doc.text(`Tanggal: ${parseTanggal(item.timestamp)}`, 6, 12);
+      doc.text(`Nama: ${item.nama}`, 6, 18);
+      doc.text(`Uraian: ${item.uraian}`, 6, 24);
+      doc.text(`Nominal: ${item.nominal}`, 6, 30);
+      doc.text(`Pembayaran: ${item.pembayaran}`, 6, 36);
+      let y = 42;
+
+      // Foto Nota
+      doc.text("Foto Nota:", 6, y); y += 6;
+      if (item.foto) {
+        try {
+          const fotoBase64 = await getImageBase64ViaImgTag(item.foto);
+          doc.addImage(fotoBase64, 'JPEG', 6, y, 80, 60);
+          y += 65;
+        } catch {
+          doc.text("Gagal tampilkan foto nota.", 10, y);
+          y += 10;
+        }
+      } else {
+        doc.text("Tidak ada foto nota.", 10, y); y += 10;
+      }
+
+      // Bukti Transfer
+      doc.text("Bukti Transfer:", 6, y); y += 6;
+      if (item.buktitransfer) {
+        try {
+          const buktitransferBase64 = await getImageBase64ViaImgTag(item.buktitransfer);
+          doc.addImage(buktitransferBase64, 'JPEG', 6, y, 80, 60);
+          y += 65;
+        } catch {
+          doc.text("Gagal tampilkan bukti transfer.", 10, y);
+          y += 10;
+        }
+      } else {
+        doc.text("Tidak ada bukti transfer.", 10, y); y += 10;
+      }
+    }
+  }
+
+  doc.deletePage(1); // Hapus halaman kosong pertama
+  doc.save("Foto_Nota.pdf");
 }
 
-document.getElementById("pdfBtn").addEventListener("click", downloadScreenshotPDF);
+document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
 
 
