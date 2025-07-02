@@ -614,12 +614,18 @@ async function getImageBase64FromURL(url) {
           if (base64Bukti) doc.addImage(base64Bukti, 'JPEG', 6, y + 6, 70, 0);
         }
 
-        progress.textContent = Math.round(((i + 1) / filteredData.length) * 100);
-      }
 
-      notif.style.display = "none";
-      spinner.style.display = "none";
-      doc.save("i-Ledger_BukuBesar.pdf");
+          progress.textContent = Math.round(((i + 1) / filteredData.length) * 100);
+        }
+
+        doc.save("i-Ledger_BukuBesar.pdf");
+      } catch (err) {
+        console.error("Gagal membuat PDF:", err);
+        alert("Terjadi kesalahan saat menyiapkan PDF. Coba lagi.");
+      } finally {
+        notif.style.display = "none";
+        spinnerElement.style.display = "none";
+      }
     }
 
     document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
