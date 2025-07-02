@@ -303,12 +303,13 @@ function extractDriveId(url) {
         const nominal = item.nominal ? parseInt(item.nominal) : 0;
         totalNominal += nominal;
 const fotoNota = item.foto && item.foto.includes('https://') 
-  ? `<a href="${item.foto}" target="_blank"><img src="https://drive.google.com/thumbnail?id=${extractDriveId(item.foto)}&sz=w200" alt="Foto Nota" /></a>` 
+  ? `<a href="${item.foto}" target="_blank"><img src="${item.foto}" alt="Foto Nota" /></a>` 
   : '<span class="error">Foto Nota tidak ada</span>';
 
 const buktitransfer = item.buktitransfer && item.buktitransfer.includes('https://') 
-  ? `<a href="${item.buktitransfer}" target="_blank"><img src="https://drive.google.com/thumbnail?id=${extractDriveId(item.buktitransfer)}&sz=w200" alt="Bukti Transfer" /></a>` 
+  ? `<a href="${item.buktitransfer}" target="_blank"><img src="${item.buktitransfer}" alt="Bukti Transfer" /></a>` 
   : '<span class="error">Bukti Transfer tidak ada</span>';
+
 
         const row = document.createElement("tr");
         row.innerHTML = 
@@ -542,7 +543,8 @@ async function downloadPDFWithImages() {
       doc.text("Foto Nota:", 6, y); y += 6;
       if (item.foto) {
         try {
-          const fotoBase64 = await getImageBase64ViaFetch(convertGoogleDriveToDirect(item.foto));
+         const fotoBase64 = await getImageBase64ViaFetch(item.foto); // Langsung pakai link
+
           doc.addImage(fotoBase64, 'JPEG', 6, y, 80, 60);
           y += 65;
         } catch {
@@ -557,7 +559,8 @@ async function downloadPDFWithImages() {
       doc.text("Bukti Transfer:", 6, y); y += 6;
       if (item.buktitransfer) {
         try {
-          const buktitransferBase64 = await getImageBase64ViaFetch(convertGoogleDriveToDirect(item.buktitransfer));
+          const buktitransferBase64 = await getImageBase64ViaFetch(item.buktitransfer);
+
           doc.addImage(buktitransferBase64, 'JPEG', 6, y, 80, 60);
           y += 65;
         } catch {
