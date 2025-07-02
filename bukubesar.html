@@ -500,6 +500,17 @@ async function getImageBase64FromURL(url) {
     return null;
   }
 }
+async function fetchBase64FromDrive(fileId) {
+  try {
+    const url = `${API_ENDPOINT}?action=getImageBase64&id=${fileId}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Fetch error");
+    return await res.text();
+  } catch (err) {
+    console.error("Gagal ambil base64:", err);
+    return null;
+  }
+}
 
 // Download PDF
 function getImageBase64ViaImgTag(url) {
@@ -564,34 +575,47 @@ async function downloadPDFWithImages() {
     doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 10, y); y += 8;
     doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 10, y); y += 8;
 
-    // FOTO NOTA
+    // === FOTO NOTA ===
+    doc.text("Foto Nota:", 10, y); y += 5;
     if (item.foto) {
-      doc.text("Foto Nota:", 10, y); y += 5;
-      try {
-        const imgData = await getImageBase64ViaImgTag(item.foto);
-        doc.addImage(imgData, "JPEG", 10, y, 80, 60);
-        y += 65;
-      } catch {
-        doc.text("Gagal muat foto nota", 15, y); y += 10;
+      const idNota = extractDriveId(item.foto);
+      if (idNota) {
+        const base64Nota = await fetchBase64FromDrive(idNota);
+        if (base64Nota) {
+          doc.addImage(base64Nota, "JPEG", 10, y, 80, 60);
+          y += 65;
+        } else {
+          doc.text("Gagal muat foto nota", 15, y); y += 10;
+        }
+      } else {
+        doc.text("ID Foto Nota tidak valid", 15, y); y += 10;
       }
+    } else {
+      doc.text("Tidak ada foto nota", 15, y); y += 10;
     }
 
-    // BUKTI TRANSFER
+    // === BUKTI TRANSFER ===
+    doc.text("Bukti Transfer:", 10, y); y += 5;
     if (item.buktitransfer) {
-      doc.text("Bukti Transfer:", 10, y); y += 5;
-      try {
-        const imgData = await getImageBase64ViaImgTag(item.buktitransfer);
-        doc.addImage(imgData, "JPEG", 10, y, 80, 60);
-        y += 65;
-      } catch {
-        doc.text("Gagal muat bukti transfer", 15, y); y += 10;
+      const idBukti = extractDriveId(item.buktitransfer);
+      if (idBukti) {
+        const base64Bukti = await fetchBase64FromDrive(idBukti);
+        if (base64Bukti) {
+          doc.addImage(base64Bukti, "JPEG", 10, y, 80, 60);
+          y += 65;
+        } else {
+          doc.text("Gagal muat bukti transfer", 15, y); y += 10;
+        }
+      } else {
+        doc.text("ID Bukti Transfer tidak valid", 15, y); y += 10;
       }
+    } else {
+      doc.text("Tidak ada bukti transfer", 15, y); y += 10;
     }
   }
 
   doc.save("i-Ledger_BukuBesar.pdf");
 }
-
 
 document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
