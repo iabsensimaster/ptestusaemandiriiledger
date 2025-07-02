@@ -582,7 +582,15 @@ async function downloadPDFWithImages() {
       if (idNota) {
         const base64Nota = await fetchBase64FromDrive(idNota);
         if (base64Nota) {
-          doc.addImage(base64Nota, "JPEG", 10, y, 80, 60);
+          const notaImg = new Image();
+notaImg.src = base64Nota;
+await new Promise(resolve => notaImg.onload = resolve);
+const notaRatio = notaImg.height / notaImg.width;
+const notaWidth = 80;
+const notaHeight = notaWidth * notaRatio;
+doc.addImage(base64Nota, "JPEG", 10, y, notaWidth, notaHeight);
+y += notaHeight + 5;
+
           y += 65;
         } else {
           doc.text("Gagal muat foto nota", 15, y); y += 10;
@@ -601,7 +609,15 @@ async function downloadPDFWithImages() {
       if (idBukti) {
         const base64Bukti = await fetchBase64FromDrive(idBukti);
         if (base64Bukti) {
-          doc.addImage(base64Bukti, "JPEG", 10, y, 80, 60);
+          const buktiImg = new Image();
+buktiImg.src = base64Bukti;
+await new Promise(resolve => buktiImg.onload = resolve);
+const buktiRatio = buktiImg.height / buktiImg.width;
+const buktiWidth = 80;
+const buktiHeight = buktiWidth * buktiRatio;
+doc.addImage(base64Bukti, "JPEG", 10, y, buktiWidth, buktiHeight);
+y += buktiHeight + 5;
+
           y += 65;
         } else {
           doc.text("Gagal muat bukti transfer", 15, y); y += 10;
