@@ -483,46 +483,34 @@ function parseTanggal(input) {
   return `${day}/${month}/${year}`;
 }
     // Download PDF
-// Download PDF
-// Tambahkan fungsi helper untuk convert URL gambar ke base64
-async function getImageBase64FromURL(url) {
-  try {
-    const response = await fetch(url, { mode: 'cors' });
-    const blob = await response.blob();
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch (err) {
-    console.error("Gagal konversi gambar:", err);
-    return null;
-  }
-}
-
-// Download PDF
 function getImageBase64ViaImgTag(url) {
   return new Promise((resolve, reject) => {
+    const idMatch = url.match(/id=([a-zA-Z0-9_-]+)/);
+    if (!idMatch) return reject("ID Google Drive tidak ditemukan");
+
+    const driveId = idMatch[1];
+    const directURL = `https://drive.google.com/uc?export=view&id=${driveId}`;
+
     const img = new Image();
-    img.crossOrigin = "Anonymous";
+    img.crossOrigin = "anonymous"; // ini akan diabaikan oleh Google tapi tetap kita coba
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
       try {
-        const dataURL = canvas.toDataURL("image/jpeg");
-        resolve(dataURL);
+        const base64 = canvas.toDataURL("image/jpeg", 1.0);
+        resolve(base64);
       } catch (err) {
-        reject("Gagal convert canvas ke base64");
+        reject("Gagal convert gambar ke base64");
       }
     };
-    img.onerror = () => reject("Gagal load gambar dari URL");
-    img.src = url;
+    img.onerror = () => reject("Gagal load gambar");
+    img.src = directURL;
   });
 }
+
 
 async function downloadPDFWithImages() {
   if (!allData.length) {
