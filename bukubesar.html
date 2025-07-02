@@ -488,8 +488,10 @@ function convertGoogleDriveToDirect(link) {
 // Ambil gambar dari URL, convert jadi base64 via fetch
 async function getImageBase64ViaFetch(url) {
   try {
-    const response = await fetch(url);
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const response = await fetch(proxyUrl);
     const blob = await response.blob();
+
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
@@ -497,10 +499,11 @@ async function getImageBase64ViaFetch(url) {
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.error("Gagal ambil gambar:", err);
+    console.error("❌ Gagal ambil gambar:", err);
     throw new Error("Gagal ambil gambar");
   }
 }
+
 
 async function downloadPDFWithImages() {
   if (!allData.length) {
