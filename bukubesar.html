@@ -536,8 +536,11 @@ function getImageBase64ViaImgTag(url) {
 }
 
 async function downloadPDFWithImages() {
+  document.getElementById("loadingSpinner").style.display = "block";
+
   if (!allData.length) {
     alert("Data tidak tersedia!");
+    document.getElementById("loadingSpinner").style.display = "none";
     return;
   }
 
@@ -557,83 +560,71 @@ async function downloadPDFWithImages() {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("p", "mm", "a4");
-  let y = 10;
 
   for (let i = 0; i < filteredData.length; i++) {
     const item = filteredData[i];
+    if (i > 0) doc.addPage();
 
-    if (i > 0) {
-      doc.addPage();
-      y = 10;
-    }
-
+    let yPosition = 10;
     doc.setFontSize(12);
-    doc.text(`Timestamp: ${formatTanggalIndonesia(item.timestamp)}`, 10, y); y += 8;
-    doc.text(`Nama: ${item.nama || "-"}`, 10, y); y += 8;
-    doc.text(`Uraian: ${item.uraian || "-"}`, 10, y); y += 8;
-    doc.text(`Pos: ${item.pos || "-"}`, 10, y); y += 8;
-    doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 10, y); y += 8;
-    doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 10, y); y += 8;
 
-    // === FOTO NOTA ===
-    doc.text("Foto Nota:", 10, y); y += 5;
+    doc.text(`Timestamp: ${formatTanggalIndonesia(item.timestamp)}`, 6, yPosition); yPosition += 8;
+    doc.text(`Nama: ${item.nama || "-"}`, 6, yPosition); yPosition += 8;
+    doc.text(`Uraian: ${item.uraian || "-"}`, 6, yPosition); yPosition += 8;
+    doc.text(`Pos: ${item.pos || "-"}`, 6, yPosition); yPosition += 8;
+    doc.text(`Nominal: ${formatRupiah(item.nominal)}`, 6, yPosition); yPosition += 8;
+    doc.text(`Pembayaran: ${item.pembayaran || "-"}`, 6, yPosition); yPosition += 10;
+
+    // ==== FOTO NOTA ====
+    doc.text('Foto Nota:', 6, yPosition);
+    yPosition += 6;
+
     if (item.foto) {
       const idNota = extractDriveId(item.foto);
-      if (idNota) {
-        const base64Nota = await fetchBase64FromDrive(idNota);
-        if (base64Nota) {
-          const notaImg = new Image();
-notaImg.src = base64Nota;
-await new Promise(resolve => notaImg.onload = resolve);
-const notaRatio = notaImg.height / notaImg.width;
-const notaWidth = 80;
-const notaHeight = notaWidth * notaRatio;
-doc.addImage(base64Nota, "JPEG", 10, y, notaWidth, notaHeight);
-y += notaHeight + 5;
-
-          y += 65;
-        } else {
-          doc.text("Gagal muat foto nota", 15, y); y += 10;
+      const base64Nota = idNota ? await fetchBase64FromDrive(idNota) : "";
+      if (base64Nota) {
+        try {
+          doc.addImage(base64Nota, 'JPEG', 6, yPosition, 0, 80); // width auto, height 80mm
+          yPosition += 80 + 6;
+        } catch (err) {
+          console.error("Error menambahkan foto nota:", err);
+          doc.text('Gagal menampilkan foto nota.', 10, yPosition);
+          yPosition += 10;
         }
       } else {
-        doc.text("ID Foto Nota tidak valid", 15, y); y += 10;
+        doc.text('Tidak ada foto nota.', 10, yPosition);
+        yPosition += 10;
       }
     } else {
-      doc.text("Tidak ada foto nota", 15, y); y += 10;
+      doc.text('Tidak ada foto nota.', 10, yPosition);
+      yPosition += 10;
     }
 
-    // === BUKTI TRANSFER ===
-    doc.text("Bukti Transfer:", 10, y); y += 5;
+    // ==== BUKTI TRANSFER ====
+    doc.text('Bukti Transfer:', 6, 140);
+
     if (item.buktitransfer) {
       const idBukti = extractDriveId(item.buktitransfer);
-      if (idBukti) {
-        const base64Bukti = await fetchBase64FromDrive(idBukti);
-        if (base64Bukti) {
-          const buktiImg = new Image();
-buktiImg.src = base64Bukti;
-await new Promise(resolve => buktiImg.onload = resolve);
-const buktiRatio = buktiImg.height / buktiImg.width;
-const buktiWidth = 80;
-const buktiHeight = buktiWidth * buktiRatio;
-doc.addImage(base64Bukti, "JPEG", 10, y, buktiWidth, buktiHeight);
-y += buktiHeight + 5;
-
-          y += 65;
-        } else {
-          doc.text("Gagal muat bukti transfer", 15, y); y += 10;
+      const base64Bukti = idBukti ? await fetchBase64FromDrive(idBukti) : "";
+      if (base64Bukti) {
+        try {
+          doc.addImage(base64Bukti, 'JPEG', 6, 146, 70, 0); // width 70mm, height auto
+        } catch (err) {
+          console.error("Error menambahkan bukti transfer:", err);
+          doc.text('Gagal menampilkan bukti transfer.', 10, 146);
         }
       } else {
-        doc.text("ID Bukti Transfer tidak valid", 15, y); y += 10;
+        doc.text('Tidak ada bukti transfer.', 10, 146);
       }
     } else {
-      doc.text("Tidak ada bukti transfer", 15, y); y += 10;
+      doc.text('Tidak ada bukti transfer.', 10, 146);
     }
   }
 
   doc.save("i-Ledger_BukuBesar.pdf");
+  document.getElementById("loadingSpinner").style.display = "none";
 }
 
-document.getElementById("pdfBtn")?.addEventListener("click", downloadPDFWithImages);
 
 
 
