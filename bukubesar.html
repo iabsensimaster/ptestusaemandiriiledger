@@ -303,13 +303,12 @@ function extractDriveId(url) {
         const nominal = item.nominal ? parseInt(item.nominal) : 0;
         totalNominal += nominal;
 const fotoNota = item.foto && item.foto.includes('https://') 
-  ? `<a href="${item.foto}" target="_blank"><img src="${item.foto}" alt="Foto Nota" /></a>` 
+  ? `<a href="${item.foto}" target="_blank"><img src="https://drive.google.com/thumbnail?id=${extractDriveId(item.foto)}&sz=w200" alt="Foto Nota" /></a>` 
   : '<span class="error">Foto Nota tidak ada</span>';
 
 const buktitransfer = item.buktitransfer && item.buktitransfer.includes('https://') 
-  ? `<a href="${item.buktitransfer}" target="_blank"><img src="${item.buktitransfer}" alt="Bukti Transfer" /></a>` 
+  ? `<a href="${item.buktitransfer}" target="_blank"><img src="https://drive.google.com/thumbnail?id=${extractDriveId(item.buktitransfer)}&sz=w200" alt="Bukti Transfer" /></a>` 
   : '<span class="error">Bukti Transfer tidak ada</span>';
-
 
         const row = document.createElement("tr");
         row.innerHTML = 
@@ -476,22 +475,13 @@ function parseTanggal(input) {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 }
-// Konversi link Google Drive viewer jadi direct image
-function convertGoogleDriveToDirect(link) {
-  const match = link.match(/\/d\/([^/]+)\//);
-  if (match && match[1]) {
-    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-  }
-  return link;
-}
-
-// Ambil gambar dari URL, convert jadi base64 via fetch
-async function getImageBase64ViaFetch(url) {
+    // Download PDF
+// Download PDF
+// Tambahkan fungsi helper untuk convert URL gambar ke base64
+async function getImageBase64FromURL(url) {
   try {
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    const response = await fetch(proxyUrl);
+    const response = await fetch(url, { mode: 'cors' });
     const blob = await response.blob();
-
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
@@ -499,11 +489,33 @@ async function getImageBase64ViaFetch(url) {
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.error("❌ Gagal ambil gambar:", err);
-    throw new Error("Gagal ambil gambar");
+    console.error("Gagal konversi gambar:", err);
+    return null;
   }
 }
 
+// Download PDF
+function getImageBase64ViaImgTag(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataURL = canvas.toDataURL("image/jpeg");
+        resolve(dataURL);
+      } catch (err) {
+        reject("Gagal convert canvas ke base64");
+      }
+    };
+    img.onerror = () => reject("Gagal load gambar dari URL");
+    img.src = url;
+  });
+}
 
 async function downloadPDFWithImages() {
   if (!allData.length) {
@@ -546,8 +558,7 @@ async function downloadPDFWithImages() {
       doc.text("Foto Nota:", 6, y); y += 6;
       if (item.foto) {
         try {
-         const fotoBase64 = await getImageBase64ViaFetch(item.foto); // Langsung pakai link
-
+          const fotoBase64 = await getImageBase64ViaImgTag(item.foto);
           doc.addImage(fotoBase64, 'JPEG', 6, y, 80, 60);
           y += 65;
         } catch {
@@ -562,8 +573,7 @@ async function downloadPDFWithImages() {
       doc.text("Bukti Transfer:", 6, y); y += 6;
       if (item.buktitransfer) {
         try {
-          const buktitransferBase64 = await getImageBase64ViaFetch(item.buktitransfer);
-
+          const buktitransferBase64 = await getImageBase64ViaImgTag(item.buktitransfer);
           doc.addImage(buktitransferBase64, 'JPEG', 6, y, 80, 60);
           y += 65;
         } catch {
